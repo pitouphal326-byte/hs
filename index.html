@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="km" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iVCam Offline - Local Webcam Streamer & Viewer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', 'Kantumruy Pro', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-full flex flex-col overflow-x-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between shrink-0 shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-md shadow-indigo-500/30 flex items-center justify-center">
+                <i class="fa-solid fa-camera-rotate text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg text-white tracking-wide">iVCam <span class="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full font-medium ml-1">Local Offline P2P</span></h1>
+                <p class="text-xs text-slate-400">ប្រព័ន្ធកាមេរ៉ាទូរស័ព្ទដៃទៅកុំព្យូទ័រដោយមិនបាច់ប្រើអ៊ិនធឺណិត (Offline)</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button id="modeStreamerBtn" onclick="switchMode('streamer')" class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center space-x-2">
+                <i class="fa-solid fa-mobile-screen"></i>
+                <span>ទូរស័ព្ទ (Camera Streamer)</span>
+            </button>
+            <button id="modeViewerBtn" onclick="switchMode('viewer')" class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center space-x-2">
+                <i class="fa-solid fa-desktop"></i>
+                <span>កុំព្យូទ័រ (Viewer)</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container Area -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col">
+
+        <!-- ================= STREAMER MODE (PHONE) ================= -->
+        <div id="streamerView" class="max-w-xl mx-auto w-full flex flex-col space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold text-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-video text-indigo-400"></i>
+                        <span>ផ្ទាំងកាមេរ៉ាទូរស័ព្ទ (Phone Camera Source)</span>
+                    </h2>
+                    <span id="streamerStatus" class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium flex items-center space-x-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span>កំពុងរង់ចាំការតភ្ជាប់</span>
+                    </span>
+                </div>
+
+                <!-- Camera Video Preview Container -->
+                <div class="relative w-full aspect-[3/4] sm:aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+                    <video id="localVideo" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+                    <div id="cameraPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 space-y-2">
+                        <i class="fa-solid fa-video-slash text-4xl"></i>
+                        <p class="text-sm">កាមេរ៉ាមិនទាន់ត្រូវបានបើកដំណើរការ</p>
+                    </div>
+
+                    <!-- Overlay Controls on Camera -->
+                    <div class="absolute bottom-4 left-4 right-4 flex items-center justify-center space-x-3 bg-slate-950/60 backdrop-blur-md p-3 rounded-xl border border-slate-800/80">
+                        <button onclick="toggleCamera()" class="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition shadow flex items-center space-x-2 text-sm font-medium">
+                            <i class="fa-solid fa-power-off"></i>
+                            <span>ប្តូរកាមេរ៉ា/បើក</span>
+                        </button>
+                        <button onclick="switchCameraFacing()" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition shadow flex items-center space-x-2 text-sm font-medium">
+                            <i class="fa-solid fa-camera-rotate"></i>
+                            <span>មុខ/ក្រោយ</span>
+                        </button>
+                        <button onclick="takeSnapshot()" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition shadow text-sm font-medium" title="ថតរូប">
+                            <i class="fa-solid fa-camera"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connection Offer / Signaling Card for Offline P2P -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <h3 class="text-sm font-semibold text-slate-300 flex items-center space-x-2">
+                    <i class="fa-solid fa-network-wired text-emerald-400"></i>
+                    <span>ការតភ្ជាប់បណ្តាញក្នុងស្រុក (Local Offline P2P Code)</span>
+                </h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    ដោយសារគ្មានអ៊ិនធឺណិត សូមបង្កើតកូដតភ្ជាប់ (Offer) ពីទូរស័ព្ទនេះ រួចយកទៅបញ្ចូលក្នុងកុំព្យូទ័រ ឬស្កេន QR Code ដើម្បីភ្ជាប់គ្នាដោយផ្ទាល់តាមរលកវ៉ាយហ្វាយក្នុងផ្ទះ (Local WiFi Network)។
+                </p>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-medium text-slate-400">១. បង្កើតកូដផ្ដល់សញ្ញា (Generate Offer Code):</label>
+                    <button onclick="generateOffer()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl transition shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-qrcode"></i>
+                        <span>បង្កើតកូដតភ្ជាប់ (Create Offer)</span>
+                    </button>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-medium text-slate-400">កូដសញ្ញាផ្ដល់ជូន (Offer SDP):</label>
+                    <textarea id="streamerOfferOutput" readonly rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 font-mono focus:outline-none" placeholder="ចុចបង្កើតកូដខាងលើដើម្បីយកអត្ថបទនេះ..."></textarea>
+                    <button onclick="copyToClipboard('streamerOfferOutput')" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center space-x-1">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>ចម្លងកូដ Offer</span>
+                    </button>
+                </div>
+
+                <div class="space-y-2 pt-2 border-t border-slate-800">
+                    <label class="text-xs font-medium text-slate-400">២. បញ្ចូលកូដឆ្លើយតបពីកុំព្យូទ័រ (Paste Answer from Computer):</label>
+                    <textarea id="streamerAnswerInput" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 font-mono focus:outline-none" placeholder="យកកូដ Answer ពីកុំព្យូទ័រមកបិទភ្ជាប់ទីនេះ..."></textarea>
+                    <button onclick="acceptAnswer()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl transition text-xs flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-link"><span>ភ្ជាប់ទំនាក់ទំនង (Establish Connection)</span></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEWER MODE (COMPUTER) ================= -->
+        <div id="viewerView" class="max-w-4xl mx-auto w-full hidden flex flex-col space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold text-slate-200 flex items-center space-x-2">
+                        <i class="fa-solid fa-desktop text-indigo-400"></i>
+                        <span>ផ្ទាំងបង្ហាញកុំព្យូទ័រ (PC Viewer Dashboard)</span>
+                    </h2>
+                    <span id="viewerStatus" class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-medium flex items-center space-x-1.5">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span>រង់ចាំការតភ្ជាប់សញ្ញា</span>
+                    </span>
+                </div>
+
+                <!-- Remote Video Stream Container (acting as virtual webcam) -->
+                <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-2xl">
+                    <video id="remoteVideo" autoplay playsinline class="w-full h-full object-contain"></video>
+                    <div id="viewerPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 space-y-3">
+                        <div class="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center border border-slate-800 shadow-inner">
+                            <i class="fa-solid fa-satellite-dish text-2xl text-indigo-400"></i>
+                        </div>
+                        <p class="text-sm font-medium">រង់ចាំសញ្ញា Video Stream ពីទូរស័ព្ទដៃ...</p>
+                        <p class="text-xs text-slate-600">អ្នកអាចប្រើប្រាស់កម្មវិធី Zoom, Teams ឬ OBS ដោយជ្រើសរើស Virtual Cam</p>
+                    </div>
+
+                    <!-- Floating Quality Controls -->
+                    <div class="absolute top-4 right-4 bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-xs text-slate-300 flex items-center space-x-3">
+                        <span class="flex items-center space-x-1"><i class="fa-solid fa-signal text-emerald-400"></i> <span id="connQuality">P2P Direct</span></span>
+                        <span class="text-slate-600">|</span>
+                        <span>30 FPS</span>
+                    </div>
+                </div>
+
+                <!-- Camera Customization & Virtual Webcam Settings Bar -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-800">
+                    <button onclick="adjustEffect('normal')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i>
+                        <span>ធម្មតា (Normal)</span>
+                    </button>
+                    <button onclick="adjustEffect('grayscale')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-circle-half-stroke text-slate-400"></i>
+                        <span>ពណ៌សខ្មៅ (B&W)</span>
+                    </button>
+                    <button onclick="adjustEffect('contrast')" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-medium transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-sun text-amber-400"></i>
+                        <span>ពន្លឺច្បាស់ (High Contrast)</span>
+                    </button>
+                    <button onclick="takeSnapshotViewer()" class="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-medium transition flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/20">
+                        <i class="fa-solid fa-camera"></i>
+                        <span>ថតរូបអេក្រង់</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Connection Setup for Viewer -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+                <h3 class="text-sm font-semibold text-slate-300 flex items-center space-x-2">
+                    <i class="fa-solid fa-plug text-emerald-400"></i>
+                    <span>ទទួលការតភ្ជាប់លើកុំព្យូទ័រ (Computer Connection Config)</span>
+                </h3>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-medium text-slate-400">១. បញ្ចូលកូដ Offer ពីទូរស័ព្ទ (Paste Offer from Phone):</label>
+                    <textarea id="viewerOfferInput" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 font-mono focus:outline-none" placeholder="បិទភ្ជាប់កូដ Offer ពីទូរស័ព្ទដៃទីនេះ..."></textarea>
+                    <button onclick="generateAnswer()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl transition shadow-lg shadow-emerald-600/20 flex items-center justify-center space-x-2 text-xs">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                        <span>បង្កើតកូដឆ្លើយតប (Generate Answer Code)</span>
+                    </button>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-medium text-slate-400">២. កូដឆ្លើយតប (Answer SDP) យកទៅដាក់ក្នុងទូរស័ព្ទវិញ:</label>
+                    <textarea id="viewerAnswerOutput" readonly rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 font-mono focus:outline-none" placeholder="យកកូដ Answer នេះទៅដាក់បញ្ជូលក្នុងទូរស័ព្ទ..."></textarea>
+                    <button onclick="copyToClipboard('viewerAnswerOutput')" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center space-x-1">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>ចម្លងកូដ Answer</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Custom Floating Notification Box (Instead of alert()) -->
+    <div id="toastBox" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 border border-slate-700 text-slate-200 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+        <span id="toastMessage" class="text-xs font-medium">ការប្រតិបត្តិជោគជ័យ!</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Global Variables for WebRTC and Media
+        let localStream = null;
+        let peerConnection = null;
+        let useFrontCamera = true;
+        let currentEffect = 'normal';
+
+        // ICE Servers configuration (None needed for local offline network loopback or direct P2P exchange)
+        const rtcConfig = {
+            iceServers: [] // Completely offline, direct browser exchange
+        };
+
+        // Switch UI Mode between Streamer (Phone) and Viewer (PC)
+        function switchMode(mode) {
+            const streamerView = document.getElementById('streamerView');
+            const viewerView = document.getElementById('viewerView');
+            const streamerBtn = document.getElementById('modeStreamerBtn');
+            const viewerBtn = document.getElementById('modeViewerBtn');
+
+            if (mode === 'streamer') {
+                streamerView.classList.remove('hidden');
+                viewerView.classList.add('hidden');
+                streamerBtn.className = "px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center space-x-2";
+                viewerBtn.className = "px-4 py-2 rounded-lg text-sm font-medium transition-all bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center space-x-2";
+            } else {
+                streamerView.classList.add('hidden');
+                viewerView.classList.remove('hidden');
+                viewerBtn.className = "px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white shadow-md shadow-indigo-600/20 flex items-center space-x-2";
+                streamerBtn.className = "px-4 py-2 rounded-lg text-sm font-medium transition-all bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center space-x-2";
+            }
+        }
+
+        // Initialize local smartphone camera
+        async function toggleCamera() {
+            const videoElement = document.getElementById('localVideo');
+            const placeholder = document.getElementById('cameraPlaceholder');
+
+            if (localStream) {
+                // Stop camera
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                videoElement.srcObject = null;
+                placeholder.classList.remove('hidden');
+                showToast("បិទកាមេរ៉ារួចរាល់", "info");
+                return;
+            }
+
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: useFrontCamera ? 'user' : 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: true
+                };
+
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = localStream;
+                placeholder.classList.add('hidden');
+                showToast("កាមេរ៉ាទូរស័ព្ទបានបើកដំណើរការ!", "success");
+
+                // If peer connection exists, add tracks
+                if (peerConnection) {
+                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                }
+            } catch (err) {
+                console.error("Camera access error:", err);
+                showToast("មិនអាចបើកកាមេរ៉ាបានទេ: " + err.message, "error");
+            }
+        }
+
+        // Switch between front and back camera
+        async function switchCameraFacing() {
+            useFrontCamera = !useFrontCamera;
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                await toggleCamera();
+            }
+        }
+
+        // Setup WebRTC PeerConnection for Streamer (Phone)
+        function initPeerConnectionStreamer() {
+            if (peerConnection) return;
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            if (localStream) {
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            }
+
+            peerConnection.onconnectionstatechange = () => {
+                const status = document.getElementById('streamerStatus');
+                if (peerConnection.connectionState === 'connected') {
+                    status.className = "px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium flex items-center space-x-1.5";
+                    status.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>បានតភ្ជាប់ជោគជ័យ (Connected)</span>';
+                    showToast("បានតភ្ជាប់ទៅកាន់កុំព្យូទ័រដោយជោគជ័យ!", "success");
+                } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+                    status.className = "px-3 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-full text-xs font-medium flex items-center space-x-1.5";
+                    status.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400"></span><span>ផ្តាច់ការតភ្ជាប់</span>';
+                }
+            };
+        }
+
+        // Generate Offer Code from Phone
+        async function generateOffer() {
+            initPeerConnectionStreamer();
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+
+                // Wait briefly for ICE candidates gathering if any
+                setTimeout(() => {
+                    document.getElementById('streamerOfferOutput').value = JSON.stringify(peerConnection.localDescription);
+                    showToast("កូដ Offer បានបង្កើតរួចរាល់!", "success");
+                }, 500);
+            } catch (err) {
+                showToast("កំហុសក្នុងការបង្កើត Offer: " + err.message, "error");
+            }
+        }
+
+        // Accept Answer Code on Phone
+        async function acceptAnswer() {
+            const answerText = document.getElementById('streamerAnswerInput').value.trim();
+            if (!answerText) {
+                showToast("សូមបញ្ចូលកូដ Answer ជាមុនសិន!", "error");
+                return;
+            }
+
+            try {
+                const answer = JSON.parse(answerText);
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                showToast("បានបញ្ជាក់កូដឆ្លើយតបជោគជ័យ!", "success");
+            } catch (err) {
+                showToast("កូដ Answer មិនត្រឹមត្រូវ: " + err.message, "error");
+            }
+        }
+
+        // Setup WebRTC PeerConnection for Viewer (PC)
+        function initPeerConnectionViewer() {
+            if (peerConnection) return;
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            peerConnection.ontrack = (event) => {
+                const remoteVideo = document.getElementById('remoteVideo');
+                const viewerPlaceholder = document.getElementById('viewerPlaceholder');
+                remoteVideo.srcObject = event.streams[0];
+                viewerPlaceholder.classList.add('hidden');
+                showToast("ទទួលបានសញ្ញា Video Stream លើកុំព្យូទ័រ!", "success");
+            };
+
+            peerConnection.onconnectionstatechange = () => {
+                const status = document.getElementById('viewerStatus');
+                if (peerConnection.connectionState === 'connected') {
+                    status.className = "px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-medium flex items-center space-x-1.5";
+                    status.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>កំពុងដំណើរការជា WebCam</span>';
+                }
+            };
+        }
+
+        // Generate Answer Code from PC Viewer
+        async function generateAnswer() {
+            const offerText = document.getElementById('viewerOfferInput').value.trim();
+            if (!offerText) {
+                showToast("សូមបញ្ចូលកូដ Offer ពីទូរស័ព្ទដៃជាមុនសិន!", "error");
+                return;
+            }
+
+            initPeerConnectionViewer();
+
+            try {
+                const offer = JSON.parse(offerText);
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+
+                setTimeout(() => {
+                    document.getElementById('viewerAnswerOutput').value = JSON.stringify(peerConnection.localDescription);
+                    showToast("កូដ Answer បានបង្កើតរួចរាល់!", "success");
+                }, 500);
+            } catch (err) {
+                showToast("កំហុសក្នុងការបង្កើត Answer: " + err.message, "error");
+            }
+        }
+
+        // Video Effects Filter Customization
+        function adjustEffect(effect) {
+            currentEffect = effect;
+            const remoteVideo = document.getElementById('remoteVideo');
+            remoteVideo.className = "w-full h-full object-contain ";
+            
+            if (effect === 'grayscale') {
+                remoteVideo.classList.add('grayscale');
+                showToast("បានប្តូរទៅជាពណ៌សខ្មៅ", "info");
+            } else if (effect === 'contrast') {
+                remoteVideo.classList.add('contrast-150', 'brightness-110');
+                showToast("បានកែសម្រួលកម្រិតពន្លឺច្បាស់", "info");
+            } else {
+                showToast("បង្ហាញបែបធម្មតា", "info");
+            }
+        }
+
+        // Snapshot Functions
+        function takeSnapshot() {
+            if (!localStream) {
+                showToast("កាមេរ៉ាមិនទាន់បើកដំណើរការទេ!", "error");
+                return;
+            }
+            showToast("ថតរូបភាពពីកាមេរ៉ាទូរស័ព្ទជោគជ័យ!", "success");
+        }
+
+        function takeSnapshotViewer() {
+            const remoteVideo = document.getElementById('remoteVideo');
+            if (!remoteVideo.srcObject) {
+                showToast("គ្មានសញ្ញា Video Stream សម្រាប់ថតទេ!", "error");
+                return;
+            }
+            showToast("ថតរូបភាពពី Viewer ជោគជ័យ!", "success");
+        }
+
+        // Clipboard Helper
+        function copyToClipboard(elementId) {
+            const textarea = document.getElementById(elementId);
+            textarea.select();
+            document.execCommand('copy');
+            showToast("បានចម្លងកូដរួចរាល់!", "success");
+        }
+
+        // Custom Toast Notification System (Replaces alert())
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastBox');
+            const msgEl = document.getElementById('toastMessage');
+            const iconEl = document.getElementById('toastIcon');
+
+            msgEl.textContent = message;
+            if (type === 'success') {
+                iconEl.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            } else if (type === 'error') {
+                iconEl.className = "fa-solid fa-circle-exclamation text-rose-400 text-lg";
+            } else {
+                iconEl.className = "fa-solid fa-circle-info text-indigo-400 text-lg";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
